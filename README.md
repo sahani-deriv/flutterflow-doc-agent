@@ -1,6 +1,6 @@
 # FlutterFlow Documentation Agent
 
-This repository contains a Python-based agent for scraping and processing FlutterFlow documentation, combining official documentation with community insights to provide intelligent assistance.
+This repository contains an agent for scraping and processing FlutterFlow documentation, combining official documentation with community insights to provide intelligent assistance.
 
 ## Project Structure
 
