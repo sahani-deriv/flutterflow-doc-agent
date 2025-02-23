@@ -1,81 +1,10 @@
-import requests
-from bs4 import BeautifulSoup
+import os
 from typing import Optional
 from langchain.tools import Tool
 from langchain_community.vectorstores.supabase import SupabaseVectorStore
+from langchain_openai import ChatOpenAI
 
-def search_community(query: str) -> str:
-    """Search FlutterFlow community for relevant discussions"""
-    try:
-        # Format query for URL
-        formatted_query = query.replace(' ', '+')
-        url = f"https://community.flutterflow.io/search?q={formatted_query}"
-        
-        # Send request with desktop user agent
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        
-        # Parse HTML
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Find search results
-        results = []
-        for post in soup.find_all('div', class_='topic-list-item'):
-            try:
-                title_elem = post.find('a', class_='title')
-                if not title_elem:
-                    continue
-                    
-                title = title_elem.get_text(strip=True)
-                link = f"https://community.flutterflow.io{title_elem['href']}"
-                
-                # Get post content
-                post_response = requests.get(link, headers=headers)
-                post_response.raise_for_status()
-                post_soup = BeautifulSoup(post_response.text, 'html.parser')
-                
-                # Find the first post content
-                content_elem = post_soup.find('div', class_='post')
-                if not content_elem:
-                    continue
-                    
-                content = content_elem.get_text(strip=True)
-                
-                results.append({
-                    'title': title,
-                    'link': link,
-                    'content': content[:500] + '...' if len(content) > 500 else content
-                })
-                
-                if len(results) >= 3:  # Limit to top 3 results
-                    break
-                    
-            except Exception as e:
-                print(f"Error processing post: {str(e)}")
-                continue
-        
-        if not results:
-            return "No relevant community discussions found."
-        
-        # Format results
-        formatted_results = []
-        for idx, result in enumerate(results, 1):
-            formatted_results.append(
-                f"Result {idx}:\n"
-                f"Title: {result['title']}\n"
-                f"Link: {result['link']}\n"
-                f"Content: {result['content']}\n"
-            )
-        
-        return "\n\n".join(formatted_results)
-        
-    except Exception as e:
-        return f"Error searching community: {str(e)}"
-
-def create_tools(vector_store: SupabaseVectorStore, supabase_client) -> list:
+def create_tools(vector_store: SupabaseVectorStore, supabase_client, openai_api_key: Optional[str] = None) -> list:
     """Create and return a list of tools for the agent"""
     
     # Content Search Tool (RAG)
@@ -157,17 +86,18 @@ def create_tools(vector_store: SupabaseVectorStore, supabase_client) -> list:
         except Exception as e:
             return f"Error searching documentation: {str(e)}"
     
-    # Create tools
+    # Initialize OpenAI components if API key is provided
+    if not openai_api_key:
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+    
+    if not openai_api_key:
+        raise ValueError("OpenAI API key is required")
+        
+    # Create documentation search tool
     documentation_tool = Tool(
         name="search_documentation",
-        description="Search the FlutterFlow documentation comprehensively, including titles, summaries, and detailed content. Use this first for authoritative information.",
+        description="Search the FlutterFlow documentation comprehensively, including titles, summaries, and detailed content.",
         func=enhanced_documentation_search
     )
     
-    community_tool = Tool(
-        name="search_community",
-        description="Search the FlutterFlow community forums for discussions, solutions, and user experiences. Use this after checking the official documentation.",
-        func=search_community
-    )
-    
-    return [documentation_tool, community_tool]
+    return [documentation_tool]

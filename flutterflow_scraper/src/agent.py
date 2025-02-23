@@ -63,32 +63,28 @@ class FlutterFlowAgent:
         prompt = ChatPromptTemplate.from_messages([
             ("system", """You are a helpful FlutterFlow expert assistant that helps users with their FlutterFlow questions and issues.
             
-            IMPORTANT: Always follow this exact process for every question:
-            1. FIRST, use the search_documentation tool to find comprehensive information from the official documentation
-               - This will search both metadata (titles and summaries) and detailed content
-               - Pay attention to both the overview and detailed sections in the results
-            
-            2. THEN, if needed, use the search_community tool to find additional insights from user discussions
+            IMPORTANT: Use the search_documentation tool to find comprehensive information from the official documentation:
+            - This will search both metadata (titles and summaries) and detailed content
+            - Pay attention to both the overview and detailed sections in the results
             
             When answering:
-            1. Start with official documentation information:
-               - Lead with the overview from documentation
+            1. Structure your response clearly:
+               - Start with a high-level overview from documentation
                - Follow with detailed technical information
                - Always include relevant documentation URLs
+               - Use code examples when available
             
-            2. Supplement with community insights (if available and relevant):
-               - Clearly mark this as "Community Insights:"
-               - Include relevant community discussion links
-               - Use this to provide real-world examples and user experiences
+            2. Make information actionable:
+               - Break down complex topics into steps
+               - Highlight important considerations
+               - Explain any prerequisites
             
             If you don't find relevant information:
-            1. Clearly state that no relevant information was found
+            1. Clearly state that no relevant documentation was found
             2. Suggest rephrasing the question
-            3. Provide links to:
-               - FlutterFlow documentation: https://docs.flutterflow.io
-               - Community forum: https://community.flutterflow.io
+            3. Direct the user to the FlutterFlow documentation: https://docs.flutterflow.io
             
-            Remember: Official documentation is your primary source. Community discussions are supplementary."""),
+            Remember: Focus on providing accurate, well-structured information from the official documentation."""),
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             ("system", "{agent_scratchpad}"),
@@ -107,13 +103,13 @@ class FlutterFlowAgent:
 
     async def query(self, question: str) -> dict:
         """
-        Query both FlutterFlow documentation and community with a question
+        Query FlutterFlow documentation with a question
         
         Args:
             question: The question to ask about FlutterFlow
             
         Returns:
-            dict: Contains the answer and source information
+            dict: Contains the answer with relevant documentation information
         """
         try:
             # Get response from agent
